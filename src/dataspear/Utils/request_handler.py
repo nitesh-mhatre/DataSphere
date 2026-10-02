@@ -1,4 +1,4 @@
-from dataspear.Utils.url import URL
+from dataspear.utils.url import URL
 import httpx
 from typing import Optional
 
