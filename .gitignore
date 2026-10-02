@@ -10,3 +10,7 @@ dist/
 src/ *.egg-info/
 
 raw/
+src/dataspear.egg-info/dependency_links.txt
+src/dataspear.egg-info/requires.txt
+src/dataspear.egg-info/SOURCES.txt
+src/dataspear.egg-info/top_level.txt

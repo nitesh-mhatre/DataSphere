@@ -7,20 +7,14 @@ class RequestHandler:
 
     async def fetch(self, extra: str) -> Optional[httpx.Response]:
         url = URL.get_url(extra)
-        print(f"Fetching URL: {url}")
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url)
                 response.raise_for_status()
-                print(f"Status: {response.status_code}")
-                print(f"Response: {response.text[:500]}")
-                return response
+                return None, response
         except httpx.RequestError as e:
-            print(f"Request error: {e}")
-            return None
+            return f"Request error: {e}" , None
         except httpx.HTTPStatusError as e:
-            print(f"HTTP error: {e.response.status_code} - {e.response.text[:200]}")
-            return None
+            return f"HTTP error: {e.response.status_code} - {e.response.text[:200]}" , None
         except Exception as e:
-            print(f"Unexpected error: {e}")
-            return None
+            return f"Unexpected error: {e}", None
