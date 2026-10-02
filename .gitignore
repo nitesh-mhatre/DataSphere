@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 correction.md
 
+build/
+dist/
+*.egg-info/
+
