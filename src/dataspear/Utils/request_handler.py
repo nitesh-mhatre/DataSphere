@@ -5,7 +5,7 @@ from typing import Optional
 
 class RequestHandler:
 
-    async def fetch(self, extra: str) -> Optional[httpx.Response]:
+    async def fetch(self, extra) -> Optional[httpx.Response]:
         url = URL.get_url(extra)
         try:
             async with httpx.AsyncClient() as client:
