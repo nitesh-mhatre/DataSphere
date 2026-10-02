@@ -3,7 +3,7 @@
 
 import asyncio
 import sys
-from dataspear.Utils.request_handler import RequestHandler
+from dataspear.utils.request_handler import RequestHandler
 
 # The extra query string for NIFTY data
 EXTRA_QUERY = "NIFTY?endTimeInMillis=1783880980000&intervalInMinutes=5&startTimeInMillis=1782153000000"

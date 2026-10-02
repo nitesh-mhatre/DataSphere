@@ -2,13 +2,15 @@ README.md
 pyproject.toml
 src/dataspear/__init__.py
 src/dataspear/config.py
+src/dataspear/core.py
 src/dataspear.egg-info/PKG-INFO
 src/dataspear.egg-info/SOURCES.txt
 src/dataspear.egg-info/dependency_links.txt
 src/dataspear.egg-info/requires.txt
 src/dataspear.egg-info/top_level.txt
-src/dataspear/Utils/request_handler.py
-src/dataspear/Utils/url.py
+src/dataspear/utils/request_handler.py
+src/dataspear/utils/url.py
+src/dataspear/utils/validation.py
 tests/test_config.py
 tests/test_integration.py
 tests/test_request_handler.py

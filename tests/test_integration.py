@@ -16,12 +16,12 @@ class TestModuleImports:
 
     def test_url_import(self):
         """Test URL module can be imported."""
-        from dataspear.Utils.url import URL
+        from dataspear.utils.url import URL
         assert URL is not None
 
     def test_request_handler_import(self):
         """Test RequestHandler can be imported."""
-        from dataspear.Utils.request_handler import RequestHandler
+        from dataspear.utils.request_handler import RequestHandler
         assert RequestHandler is not None
 
 
@@ -31,7 +31,7 @@ class TestComponentIntegration:
     def test_url_uses_config(self):
         """Test that URL class uses config values."""
         from dataspear.config import config
-        from dataspear.Utils.url import URL
+        from dataspear.utils.url import URL
 
         # Verify URL class references config
         assert hasattr(URL, 'base_url')
@@ -40,8 +40,8 @@ class TestComponentIntegration:
     def test_full_workflow(self):
         """Test a basic workflow: config -> URL -> handler."""
         from dataspear.config import Config
-        from dataspear.Utils.url import URL
-        from dataspear.Utils.request_handler import RequestHandler
+        from dataspear.utils.url import URL
+        from dataspear.utils.request_handler import RequestHandler
 
         # Generate URL using module-level config
         test_url = URL.get_url("endpoint?param=value")
@@ -68,7 +68,7 @@ class TestErrorHandling:
 
     def test_url_with_empty_extra(self):
         """Test URL generation with empty extra parameter."""
-        from dataspear.Utils.url import URL
+        from dataspear.utils.url import URL
 
         with patch.object(URL, 'base_url', 'https://test.com'):
             with patch.object(URL, 'api_index_route', '/api/'):

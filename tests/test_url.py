@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from dataspear.Utils.url import URL
+from dataspear.utils.url import URL
 
 
 class TestURL:

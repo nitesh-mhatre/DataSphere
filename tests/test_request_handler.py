@@ -3,7 +3,7 @@ import pytest
 import httpx
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from dataspear.Utils.request_handler import RequestHandler
+from dataspear.utils.request_handler import RequestHandler
 
 
 class TestRequestHandler:
@@ -31,8 +31,9 @@ class TestRequestHandler:
             mock_client_class.return_value = mock_client
 
             handler = RequestHandler()
-            result = await handler.fetch("test_endpoint")
+            error, result = await handler.fetch("test_endpoint")
 
+            assert error is None
             assert result is not None
             assert result.status_code == 200
             mock_client.get.assert_called_once()
@@ -55,9 +56,10 @@ class TestRequestHandler:
             mock_client_class.return_value = mock_client
 
             handler = RequestHandler()
-            result = await handler.fetch("nonexistent_endpoint")
+            error, result = await handler.fetch("nonexistent_endpoint")
 
             assert result is None
+            assert error is not None
 
     @pytest.mark.asyncio
     async def test_fetch_request_error(self):
@@ -70,9 +72,10 @@ class TestRequestHandler:
             mock_client_class.return_value = mock_client
 
             handler = RequestHandler()
-            result = await handler.fetch("test_endpoint")
+            error, result = await handler.fetch("test_endpoint")
 
             assert result is None
+            assert error is not None
 
     @pytest.mark.asyncio
     async def test_fetch_returns_none_on_failure(self):
@@ -85,9 +88,10 @@ class TestRequestHandler:
             mock_client_class.return_value = mock_client
 
             handler = RequestHandler()
-            result = await handler.fetch("test_endpoint")
+            error, result = await handler.fetch("test_endpoint")
 
             assert result is None
+            assert error is not None
 
 
 class TestRequestHandlerIntegration:
