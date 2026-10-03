@@ -7,10 +7,17 @@ correction.md
 
 build/
 dist/
-src/ *.egg-info/
+*.egg-info/
 
 raw/
-src/dataspear.egg-info/dependency_links.txt
-src/dataspear.egg-info/requires.txt
-src/dataspear.egg-info/SOURCES.txt
-src/dataspear.egg-info/top_level.txt
+
+# Vendored / reference source archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+jai_sadguru/
+
+# Generated data exports
+*.csv
+*.html
