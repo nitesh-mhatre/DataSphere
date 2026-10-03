@@ -17,20 +17,19 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
+from dataspear.settings import (
+    DEFAULT_HTTP_TIMEOUT,
+    JSON_HEADERS,
+    YAHOO_CHART_ENDPOINT,
+)
+from dataspear.utils.http import get_response
+
 log = logging.getLogger(__name__)
 
-YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+YAHOO_CHART_URL = YAHOO_CHART_ENDPOINT
 
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-}
-
-_DEFAULT_TIMEOUT = 15.0
+_HEADERS = JSON_HEADERS
+_DEFAULT_TIMEOUT = DEFAULT_HTTP_TIMEOUT
 
 
 @dataclass
@@ -143,12 +142,10 @@ async def fetch_chart(
     url = YAHOO_CHART_URL.format(ticker=ticker)
     params = {"range": range_, "interval": interval, "includePrePost": "false"}
     try:
-        async with httpx.AsyncClient(
-            headers=_HEADERS, timeout=timeout, follow_redirects=True
-        ) as client:
-            resp = await client.get(url, params=params)
-            resp.raise_for_status()
-            return resp.json()
+        response = await get_response(
+            url, params=params, headers=_HEADERS, timeout=timeout
+        )
+        return response.json()
     except httpx.HTTPError as exc:
         log.warning("Yahoo chart fetch failed for %s: %s", ticker, exc)
     except ValueError as exc:  # invalid JSON

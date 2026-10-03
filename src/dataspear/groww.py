@@ -38,11 +38,13 @@ from typing import Any, List, Optional
 
 import httpx
 
-from dataspear.utils.time import to_ist
+from dataspear.settings import GROWW_BASE_URL, GROWW_HEADERS, GROWW_HTTP_TIMEOUT
+from dataspear.utils.http import get_json, get_text
+from dataspear.utils.time import IST, to_ist
 
 log = logging.getLogger(__name__)
 
-GROWW_BASE = "https://groww.in"
+GROWW_BASE = GROWW_BASE_URL
 CHART_URL = (
     f"{GROWW_BASE}/v1/api/charting_service/v2/chart/delayed"
     "/exchange/NSE/segment/{segment}/{symbol}"
@@ -59,20 +61,10 @@ _MONTH_LETTERS = "JFMAMJJASOND"
 
 _EXPIRY_FORMATS = ("%Y-%m-%d", "%d-%b-%Y", "%d-%m-%Y", "%d-%B-%Y")
 
-_DEFAULT_TIMEOUT = 20.0
+_DEFAULT_TIMEOUT = GROWW_HTTP_TIMEOUT
 _DEFAULT_INTERVAL = 5
 
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    # Avoid httpx+brotlicffi 'br' DecodingError on Python 3.14.
-    "Accept-Encoding": "gzip, deflate",
-}
+_HEADERS = GROWW_HEADERS
 
 _NEXT_DATA_RE = re.compile(
     r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S
@@ -481,21 +473,11 @@ def _now_ms() -> int:
 
 
 async def _get_json(url: str, params: Optional[dict] = None) -> dict:
-    async with httpx.AsyncClient(
-        headers=_HEADERS, timeout=_DEFAULT_TIMEOUT, follow_redirects=True
-    ) as client:
-        resp = await client.get(url, params=params)
-        resp.raise_for_status()
-        return resp.json()
+    return await get_json(url, params=params, headers=_HEADERS, timeout=_DEFAULT_TIMEOUT)
 
 
 async def _get_text(url: str, params: Optional[dict] = None) -> str:
-    async with httpx.AsyncClient(
-        headers=_HEADERS, timeout=_DEFAULT_TIMEOUT, follow_redirects=True
-    ) as client:
-        resp = await client.get(url, params=params)
-        resp.raise_for_status()
-        return resp.text
+    return await get_text(url, params=params, headers=_HEADERS, timeout=_DEFAULT_TIMEOUT)
 
 
 async def fetch_groww_candles(
@@ -647,9 +629,17 @@ def _chart_from_nse(nse_chart: Any, symbol: str, interval: int) -> GrowwChart:
 
     NSE points carry only a price, so OHLC collapse onto that price.
     """
+    epoch = datetime(1970, 1, 1, tzinfo=IST)
+
+    def epoch_seconds(timestamp: datetime) -> int:
+        """Convert timestamps without relying on Windows' C-runtime epoch."""
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=IST)
+        return int((timestamp - epoch).total_seconds())
+
     candles = [
         GrowwCandle(
-            timestamp=int(p.timestamp.timestamp()),
+            timestamp=epoch_seconds(p.timestamp),
             open=p.price,
             high=p.price,
             low=p.price,

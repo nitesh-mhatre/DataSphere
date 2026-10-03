@@ -16,12 +16,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Tuple
 
+from dataspear.settings import NSE_BASE_URL
 from dataspear.nse.session import nse_get
 from dataspear.utils.time import to_ist
 
 log = logging.getLogger(__name__)
 
-CHART_URL = "https://www.nseindia.com/api/chart-databyindex?index={identifier}"
+CHART_URL = f"{NSE_BASE_URL}/api/chart-databyindex?index={{identifier}}"
 
 
 @dataclass

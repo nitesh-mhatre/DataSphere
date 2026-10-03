@@ -5,12 +5,13 @@ from __future__ import annotations
 import logging
 from typing import Any, List, Optional
 
+from dataspear.settings import NSE_BASE_URL
 from dataspear.nse.models import OptionChain, OptionQuote, OptionStrike
 from dataspear.nse.session import nse_get
 
 log = logging.getLogger(__name__)
 
-NSE_BASE = "https://www.nseindia.com"
+NSE_BASE = NSE_BASE_URL
 OPTION_CHAIN_URL = (
     f"{NSE_BASE}/api/option-chain-v3?type=Indices&symbol=NIFTY"
 )

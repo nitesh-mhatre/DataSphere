@@ -21,24 +21,21 @@ from urllib.parse import quote_plus
 
 import httpx
 
+from dataspear.settings import (
+    DEFAULT_HTTP_TIMEOUT,
+    GOOGLE_NEWS_RSS_ENDPOINT,
+    NEWS_ARTICLE_TIMEOUT,
+    NEWS_HEADERS,
+)
+from dataspear.utils.http import get_response
+
 log = logging.getLogger(__name__)
 
-GOOGLE_NEWS_URL = (
-    "https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
-)
+GOOGLE_NEWS_URL = GOOGLE_NEWS_RSS_ENDPOINT
 
-_ARTICLE_TIMEOUT = 10.0
-
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/rss+xml, application/xml, text/xml, */*",
-}
-
-_DEFAULT_TIMEOUT = 15.0
+_ARTICLE_TIMEOUT = NEWS_ARTICLE_TIMEOUT
+_HEADERS = NEWS_HEADERS
+_DEFAULT_TIMEOUT = DEFAULT_HTTP_TIMEOUT
 
 # Query templates per category.
 QUERIES = {
@@ -194,12 +191,8 @@ async def fetch_article_content(url: str, timeout: float = _ARTICLE_TIMEOUT) -> 
     Returns empty string on any failure.
     """
     try:
-        async with httpx.AsyncClient(
-            headers=_HEADERS, timeout=timeout, follow_redirects=True
-        ) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            html = resp.text
+        response = await get_response(url, headers=_HEADERS, timeout=timeout)
+        html = response.text
     except httpx.HTTPError as exc:
         log.debug("Article fetch failed [%s]: %s", url, exc)
         return ""
@@ -249,12 +242,8 @@ async def fetch_news(
     """
     url = GOOGLE_NEWS_URL.format(query=quote_plus(query))
     try:
-        async with httpx.AsyncClient(
-            headers=_HEADERS, timeout=timeout, follow_redirects=True
-        ) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            text = resp.text
+        response = await get_response(url, headers=_HEADERS, timeout=timeout)
+        text = response.text
     except httpx.HTTPError as exc:
         log.warning("News fetch failed [%s]: %s", category, exc)
         return []

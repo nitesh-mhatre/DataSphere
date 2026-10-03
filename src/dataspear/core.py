@@ -1,13 +1,15 @@
+"""AI tool discovery catalog and legacy connection exports.
+
+Provider connection implementations live in :mod:`dataspear.connections`.
+"""
+
 from __future__ import annotations
 
-import time
-from copy import copy
 from typing import Any, Callable
 
 # NOTE: dict, list are builtins in Python 3.9+; do not import from typing.
 
-from dataspear.utils.validation import IndexRequestParameters, ConnectionType
-from dataspear.utils.request_handler import RequestHandler
+from dataspear.connections import DataConnection, IndexDataConnection
 
 # Public tool registry: every named capability in dataspear, by section.
 # Each entry is ``name: (category, description, callable_or_None)``.
@@ -284,7 +286,7 @@ def ai_tool_tip() -> tuple[str, dict[str, Callable[..., Any] | None]]:
     lines.append("Import from dataspear, dataspear.nse, dataspear.groww, dataspear.news,")
     lines.append("dataspear.utils.yahoo, dataspear.utils.url, dataspear.utils.time,")
     lines.append("dataspear.utils.request_handler, dataspear.utils.validation,")
-    lines.append("dataspear.core, dataspear.config.")
+    lines.append("dataspear.core, dataspear.settings (configurable defaults).")
     lines.append("")
     lines.append("CALLING CONVENTION")
     lines.append("  - Naked functions (get_nifty_option_chain, news_brief, ...):")
@@ -322,60 +324,3 @@ def ai_tool_tip() -> tuple[str, dict[str, Callable[..., Any] | None]]:
         tool_map[name] = entry[2] if len(entry) > 2 else None
 
     return prompt, tool_map
-
-
-class DataConnection:
-    def __init__(self, params: IndexRequestParameters = None):
-        self.params = params
-        self.request_handler = RequestHandler()
-
-    async def fetch(
-        self, start_time=None, end_time=None
-    ) -> tuple:
-        """Return ``(error_str_or_None, response_or_None)`` like RequestHandler.
-
-        Does not mutate the stored params; computes a fresh copy each call.
-        """
-        if self.params is None:
-            return (
-                "Parameters (`self.params`) must be set before calling fetch().",
-                None,
-            )
-
-        # Work on a copy so the stored params are never mutated.
-        params = copy(self.params)
-
-        if params.connection_type == ConnectionType.Live:
-            current_ms = int(time.time() * 1000)
-            params.start_time = current_ms - (params.data_range * 60 * 1000)
-            params.end_time = current_ms
-        else:
-            if start_time is not None:
-                params.start_time = start_time
-            if end_time is not None:
-                params.end_time = end_time
-
-        params.validate()
-        error, response = await self.request_handler.fetch(params)
-        return error, response
-
-
-class IndexDataConnection(DataConnection):
-    def __init__(
-        self,
-        suffix=None,
-        end_time=None,
-        start_time=None,
-        interval=5,
-        data_range=60,
-        connection_type=ConnectionType.Live,
-    ):
-        params = IndexRequestParameters(
-            suffix=suffix,
-            end_time=end_time,
-            start_time=start_time,
-            interval=interval,
-            data_range=data_range,
-            connection_type=connection_type,
-        )
-        super().__init__(params=params)

@@ -14,6 +14,7 @@ import asyncio
 import logging
 from typing import Dict, List
 
+from dataspear.settings import NSE_BASE_URL
 from dataspear.nse.session import nse_get
 from dataspear.utils.time import now_ist, to_ist
 from dataspear.utils.yahoo import Candle, get_candles, get_quote
@@ -22,7 +23,7 @@ log = logging.getLogger(__name__)
 
 NIFTY_TICKER = "^NSEI"
 
-FII_DII_URL = "https://www.nseindia.com/api/fiidiiTradeReact"
+FII_DII_URL = f"{NSE_BASE_URL}/api/fiidiiTradeReact"
 
 GLOBAL_TICKERS: Dict[str, str] = {
     "sp500": "^GSPC",

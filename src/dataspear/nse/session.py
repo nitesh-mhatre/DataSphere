@@ -21,38 +21,28 @@ from typing import Any, Optional
 
 import httpx
 
+from dataspear.settings import (
+    DEFAULT_HTTP_TIMEOUT,
+    NSE_BASE_URL,
+    NSE_COOKIE_TTL,
+    NSE_HEADERS,
+    NSE_MAX_RETRIES,
+    NSE_RETRY_DELAY,
+)
+
 log = logging.getLogger(__name__)
 
-NSE_HOME = "https://www.nseindia.com"
-NSE_OPTION_CHAIN_PAGE = "https://www.nseindia.com/option-chain"
+NSE_HOME = NSE_BASE_URL
+NSE_OPTION_CHAIN_PAGE = f"{NSE_BASE_URL}/option-chain"
 
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    # NSE serves brotli, but httpx + brotlicffi can raise a DecodingError on
-    # 'br' responses ("can_accept_more_data() is False"). Advertising only
-    # gzip/deflate makes NSE respond without brotli.
-    "Accept-Encoding": "gzip, deflate",
-    "Referer": NSE_OPTION_CHAIN_PAGE,
-    "Origin": NSE_HOME,
-    "Connection": "keep-alive",
-    "DNT": "1",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin",
-}
+_HEADERS = NSE_HEADERS
 
 _WARMUP_URLS = [NSE_HOME, NSE_OPTION_CHAIN_PAGE]
 
-_DEFAULT_COOKIE_TTL = 25 * 60
-_DEFAULT_MAX_RETRIES = 3
-_DEFAULT_RETRY_DELAY = 2.0
-_DEFAULT_TIMEOUT = 15.0
+_DEFAULT_COOKIE_TTL = NSE_COOKIE_TTL
+_DEFAULT_MAX_RETRIES = NSE_MAX_RETRIES
+_DEFAULT_RETRY_DELAY = NSE_RETRY_DELAY
+_DEFAULT_TIMEOUT = DEFAULT_HTTP_TIMEOUT
 
 
 class NseSession:

@@ -2,6 +2,7 @@ from typing import Optional, Tuple, Union
 
 import httpx
 
+from dataspear.settings import DEFAULT_HTTP_TIMEOUT, JSON_HEADERS
 from dataspear.utils.url import URL
 from dataspear.utils.validation import IndexRequestParameters
 
@@ -12,17 +13,12 @@ class RequestHandler:
     Close with ``await handler.aclose()`` when done (e.g. at process exit).
     """
 
-    def __init__(self, timeout: float = 15.0, headers: Optional[dict] = None):
+    def __init__(
+        self, timeout: float = DEFAULT_HTTP_TIMEOUT, headers: Optional[dict] = None
+    ):
         self._client: Optional[httpx.AsyncClient] = None
         self._timeout = timeout
-        self._headers = headers or {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            ),
-            "Accept": "application/json, text/plain, */*",
-        }
+        self._headers = dict(headers or JSON_HEADERS)
 
     def _client_instance(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:

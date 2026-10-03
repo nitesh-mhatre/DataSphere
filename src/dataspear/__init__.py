@@ -1,5 +1,13 @@
-from dataspear.config import Config, config
-from dataspear.core import DataConnection, IndexDataConnection, ai_tool_tip
+from dataspear.settings import Config, Settings, config
+from dataspear.connections import (
+    DataConnection,
+    GrowwDataConnection,
+    IndexDataConnection,
+    NSEDataConnection,
+    NewsConnection,
+    NseDataConnection,
+)
+from dataspear.core import ai_tool_tip
 from dataspear.groww import (
     GrowwCandle,
     GrowwChart,
@@ -60,9 +68,14 @@ from dataspear.utils.validation import (
 __all__ = [
     # core
     "Config",
+    "Settings",
     "config",
     "DataConnection",
     "IndexDataConnection",
+    "GrowwDataConnection",
+    "NseDataConnection",
+    "NSEDataConnection",
+    "NewsConnection",
     "RequestHandler",
     "URL",
     "ConnectionType",
