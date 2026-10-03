@@ -34,6 +34,10 @@ _HEADERS = {
     ),
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
+    # NSE serves brotli, but httpx + brotlicffi can raise a DecodingError on
+    # 'br' responses ("can_accept_more_data() is False"). Advertising only
+    # gzip/deflate makes NSE respond without brotli.
+    "Accept-Encoding": "gzip, deflate",
     "Referer": NSE_OPTION_CHAIN_PAGE,
     "Origin": NSE_HOME,
     "Connection": "keep-alive",

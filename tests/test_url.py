@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from dataspear.utils.url import URL
+from dataspear.utils.validation import IndexRequestParameters, ConnectionType
 
 
 class TestURL:
@@ -43,6 +44,24 @@ class TestURL:
         assert hasattr(URL, 'base_url')
         assert hasattr(URL, 'api_index_route')
         assert hasattr(URL, 'get_url')
+
+    def test_get_url_from_request_parameters(self):
+        """Params must use the API's Millis/Minutes query names, not startTime/endTime."""
+        with patch.object(URL, 'base_url', 'https://groww.in'):
+            with patch.object(URL, 'api_index_route', '/chart/'):
+                params = IndexRequestParameters(
+                    suffix='NIFTY',
+                    start_time=1782153000000,
+                    end_time=1783880980000,
+                    interval=5,
+                    connection_type=ConnectionType.History,
+                )
+                url = URL.get_url(params)
+                assert 'startTimeInMillis=1782153000000' in url
+                assert 'endTimeInMillis=1783880980000' in url
+                assert 'intervalInMinutes=5' in url
+                assert 'startTime=' not in url
+                assert 'endTime=' not in url
 
 
 class TestURLIntegration:

@@ -45,13 +45,25 @@ def main():
             print("Failed to install build tools")
             return 1
 
-    # Clean previous builds
+    # Clean previous builds. The build/ directory must be removed too: a
+    # stale build/lib tree is reused by setuptools and can leak outdated
+    # paths (e.g. a renamed "Utils" vs "utils" package) into the wheel.
     print("\n[2/4] Cleaning previous builds...")
+    import shutil
+
     dist_dir = project_root / "dist"
     if dist_dir.exists():
-        import shutil
         shutil.rmtree(dist_dir)
         print("Removed old dist/ directory")
+
+    build_dir = project_root / "build"
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
+        print("Removed old build/ directory")
+
+    for egg_info in project_root.glob("src/*.egg-info"):
+        shutil.rmtree(egg_info)
+        print(f"Removed old {egg_info.name} directory")
 
     # Build wheel
     print("\n[3/4] Building wheel...")

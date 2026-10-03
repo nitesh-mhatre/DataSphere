@@ -13,8 +13,9 @@ class URL:
         if isinstance(extra, IndexRequestParameters):
             return (
                 f"{cls.base_url}{cls.api_index_route}{extra.suffix}"
-                f"?startTime={extra.start_time}&endTime={extra.end_time}"
-                f"&interval={extra.interval}"
+                f"?endTimeInMillis={extra.end_time}"
+                f"&intervalInMinutes={extra.interval}"
+                f"&startTimeInMillis={extra.start_time}"
             )
         if isinstance(extra, str):
             return f"{cls.base_url}{cls.api_index_route}{extra}"
