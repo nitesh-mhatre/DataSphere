@@ -199,10 +199,13 @@ def get_market_status(now: Optional[datetime] = None) -> MarketStatus:
     minutes_to_open = -1 if is_open else max(
         0, int((next_open - now).total_seconds() / 60)
     )
-    next_close = datetime.combine(today, NORMAL_END, tzinfo=IST)
-    minutes_to_close = (
-        max(0, int((next_close - now).total_seconds() / 60)) if is_open else -1
-    )
+    # Use today's close only when the market is actually open today.
+    if is_open:
+        next_close = datetime.combine(today, NORMAL_END, tzinfo=IST)
+        minutes_to_close = max(0, int((next_close - now).total_seconds() / 60))
+    else:
+        next_close = next_open  # closed now; next_close == next_open for display
+        minutes_to_close = -1
 
     return MarketStatus(
         now_ist=now,

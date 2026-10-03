@@ -11,6 +11,7 @@ impact (HIGH/MEDIUM/LOW) with keyword heuristics, then deduplicated.
 from __future__ import annotations
 
 import logging
+import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -25,6 +26,8 @@ log = logging.getLogger(__name__)
 GOOGLE_NEWS_URL = (
     "https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
 )
+
+_ARTICLE_TIMEOUT = 10.0
 
 _HEADERS = {
     "User-Agent": (
@@ -83,6 +86,7 @@ class NewsArticle:
     category: str
     sentiment: str = "NEUTRAL"
     impact: str = "MEDIUM"
+    full_content: str = ""
 
     def one_line(self) -> str:
         icon = {"BULLISH": "[+]", "BEARISH": "[-]", "NEUTRAL": "[ ]"}.get(
@@ -100,6 +104,7 @@ class NewsArticle:
             "category": self.category,
             "sentiment": self.sentiment,
             "impact": self.impact,
+            "full_content": self.full_content,
         }
 
 
@@ -182,14 +187,66 @@ def _is_recent(published: str, days: int) -> bool:
     return dt >= datetime.now(timezone.utc) - timedelta(days=max(days, 1))
 
 
+async def fetch_article_content(url: str, timeout: float = _ARTICLE_TIMEOUT) -> str:
+    """Fetch a news article page and extract readable text content.
+
+    Returns a cleaned text snippet (first ~2000 chars of body text).
+    Returns empty string on any failure.
+    """
+    try:
+        async with httpx.AsyncClient(
+            headers=_HEADERS, timeout=timeout, follow_redirects=True
+        ) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            html = resp.text
+    except httpx.HTTPError as exc:
+        log.debug("Article fetch failed [%s]: %s", url, exc)
+        return ""
+
+    # Strip scripts, styles, nav, headers/footers heuristically
+    html = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r"<style[^>]*>.*?</style>", " ", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r"<nav[^>]*>.*?</nav>", " ", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r"<header[^>]*>.*?</header>", " ", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r"<footer[^>]*>.*?</footer>", " ", html, flags=re.DOTALL | re.IGNORECASE)
+
+    # Replace block tags with newlines
+    html = re.sub(r"<(br|/p|/div|/h[1-6]|/tr)[^>]*>", "\n", html, flags=re.IGNORECASE)
+
+    # Strip all remaining tags
+    text = re.sub(r"<[^>]+>", "", html)
+
+    # Decode common HTML entities
+    text = text.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    text = text.replace("&quot;", '"').replace("&#39;", "'").replace("&rsquo;", "'").replace("&lsquo;", "'")
+    text = text.replace("&mdash;", "—").replace("&ndash;", "–").replace("&hellip;", "…")
+
+    # Collapse whitespace
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n\s*\n+", "\n\n", text)
+    text = text.strip()
+
+    # Trim to reasonable length
+    if len(text) > 3000:
+        text = text[:3000].rsplit("\n\n", 1)[0] + "\n\n...[truncated]"
+    return text
+
+
 async def fetch_news(
     query: str,
     category: str = "market",
     days: int = 1,
     max_results: int = 8,
     timeout: float = _DEFAULT_TIMEOUT,
+    fetch_full_content: bool = False,
 ) -> List[NewsArticle]:
-    """Fetch and score headlines for a raw query string."""
+    """Fetch and score headlines for a raw query string.
+
+    Args:
+        fetch_full_content: When True, also downloads each article page
+            and stores the cleaned body text in ``full_content``.
+    """
     url = GOOGLE_NEWS_URL.format(query=quote_plus(query))
     try:
         async with httpx.AsyncClient(
@@ -203,36 +260,42 @@ async def fetch_news(
         return []
 
     articles = parse_rss(text, category=category, max_results=max_results)
-    return [a for a in articles if _is_recent(a.published, days)]
+    articles = [a for a in articles if _is_recent(a.published, days)]
+
+    if fetch_full_content:
+        for article in articles:
+            article.full_content = await fetch_article_content(article.url)
+
+    return articles
 
 
-async def fetch_market_news(days: int = 1) -> List[NewsArticle]:
-    return await fetch_news(QUERIES["market"], "market", days=days, max_results=8)
+async def fetch_market_news(days: int = 1, fetch_full_content: bool = False) -> List[NewsArticle]:
+    return await fetch_news(QUERIES["market"], "market", days=days, max_results=8, fetch_full_content=fetch_full_content)
 
 
-async def fetch_geopolitical_news(days: int = 2) -> List[NewsArticle]:
+async def fetch_geopolitical_news(days: int = 2, fetch_full_content: bool = False) -> List[NewsArticle]:
     return await fetch_news(
-        QUERIES["geopolitical"], "geopolitical", days=days, max_results=8
+        QUERIES["geopolitical"], "geopolitical", days=days, max_results=8, fetch_full_content=fetch_full_content
     )
 
 
-async def fetch_rbi_sebi_news(days: int = 3) -> List[NewsArticle]:
+async def fetch_rbi_sebi_news(days: int = 3, fetch_full_content: bool = False) -> List[NewsArticle]:
     return await fetch_news(
-        QUERIES["rbi_sebi"], "rbi_sebi", days=days, max_results=6
+        QUERIES["rbi_sebi"], "rbi_sebi", days=days, max_results=6, fetch_full_content=fetch_full_content
     )
 
 
-async def fetch_fii_news(days: int = 1) -> List[NewsArticle]:
-    return await fetch_news(QUERIES["fii_flow"], "fii_flow", days=days, max_results=6)
+async def fetch_fii_news(days: int = 1, fetch_full_content: bool = False) -> List[NewsArticle]:
+    return await fetch_news(QUERIES["fii_flow"], "fii_flow", days=days, max_results=6, fetch_full_content=fetch_full_content)
 
 
-async def fetch_all_news(days: int = 2) -> List[NewsArticle]:
+async def fetch_all_news(days: int = 2, fetch_full_content: bool = False) -> List[NewsArticle]:
     """All categories, deduplicated, HIGH impact first."""
     batches = [
-        await fetch_market_news(days=days),
-        await fetch_fii_news(days=days),
-        await fetch_rbi_sebi_news(days=days),
-        await fetch_geopolitical_news(days=days),
+        await fetch_market_news(days=days, fetch_full_content=fetch_full_content),
+        await fetch_fii_news(days=days, fetch_full_content=fetch_full_content),
+        await fetch_rbi_sebi_news(days=days, fetch_full_content=fetch_full_content),
+        await fetch_geopolitical_news(days=days, fetch_full_content=fetch_full_content),
     ]
 
     seen = set()
@@ -262,6 +325,16 @@ def render_news_brief(articles: List[NewsArticle]) -> str:
     lines = ["=== MARKET NEWS ==="]
     lines.extend(a.one_line() for a in high + medium)
 
+    # Show full content for articles that have it (capped to keep output short)
+    for a in high + medium:
+        if a.full_content:
+            lines.append(f"\n[{a.source}] {a.url}")
+            content = a.full_content
+            if len(content) > 1500:
+                content = content[:1500].rsplit("\n", 1)[0] + "\n...[truncated]"
+            lines.append(content)
+            lines.append("---")
+
     bulls = sum(1 for a in articles if a.sentiment == "BULLISH")
     bears = sum(1 for a in articles if a.sentiment == "BEARISH")
     total = len(articles)
@@ -278,6 +351,12 @@ def render_news_brief(articles: List[NewsArticle]) -> str:
     return "\n".join(lines)
 
 
-async def news_brief(days: int = 1) -> str:
-    """Compact news summary suitable for prompt injection."""
-    return render_news_brief(await fetch_all_news(days=days))
+async def news_brief(days: int = 1, fetch_full_content: bool = False) -> str:
+    """Compact news summary suitable for prompt injection.
+
+    Args:
+        fetch_full_content: When True, downloads each article's full text
+            and includes it in the brief.
+    """
+    articles = await fetch_all_news(days=days, fetch_full_content=fetch_full_content)
+    return render_news_brief(articles)

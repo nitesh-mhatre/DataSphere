@@ -29,6 +29,13 @@ from dataspear.news import NewsArticle, fetch_all_news
 
 log = logging.getLogger(__name__)
 
+SECTION_BRIEF = "brief"
+SECTION_TECHNICALS = "technicals"
+SECTION_GLOBAL = "global"
+SECTION_FII = "fii"
+SECTION_PREMARKET = "premarket"
+SECTION_NEWS = "news"
+
 
 @dataclass
 class MarketContext:
@@ -80,38 +87,37 @@ async def build_market_context(
     """
     status = get_market_status()
 
-    tasks = [
-        build_market_brief(expiry=expiry, direction=direction),
-        get_nifty_technicals(),
-        get_global_indices(),
-        get_fii_dii_data(),
-        get_premarket_data(),
+    tasks: list = [
+        (SECTION_BRIEF, build_market_brief(expiry=expiry, direction=direction)),
+        (SECTION_TECHNICALS, get_nifty_technicals()),
+        (SECTION_GLOBAL, get_global_indices()),
+        (SECTION_FII, get_fii_dii_data()),
+        (SECTION_PREMARKET, get_premarket_data()),
     ]
     if include_news:
-        tasks.append(fetch_all_news(days=1))
+        tasks.append((SECTION_NEWS, fetch_all_news(days=1)))
 
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    raw = await asyncio.gather(*[t for _, t in tasks], return_exceptions=True)
+    results = dict(zip((name for name, _ in tasks), raw))
 
-    def _section(index: int, default):
-        result = results[index]
-        if isinstance(result, Exception) or result is None:
-            log.warning("market context section %d failed: %s", index, result)
+    def get(name, default):
+        value = results.get(name)
+        if isinstance(value, Exception) or value is None:
+            log.warning("market context section %s failed: %s", name, value)
             return default
-        return result
+        return value
 
-    brief = results[0]
+    brief = results.get(SECTION_BRIEF)
     if not isinstance(brief, MarketBrief):
         log.warning("market context brief failed: %s", brief)
         brief = _fallback_brief(expiry, str(brief))
 
-    news = _section(5, []) if include_news else []
-
     return MarketContext(
         brief=brief,
         market_status=status,
-        technicals=_section(1, {}),
-        global_indices=_section(2, {}),
-        fii_dii=_section(3, {}),
-        premarket=_section(4, {}),
-        news=news,
+        technicals=get(SECTION_TECHNICALS, {}),
+        global_indices=get(SECTION_GLOBAL, {}),
+        fii_dii=get(SECTION_FII, {}),
+        premarket=get(SECTION_PREMARKET, {}),
+        news=get(SECTION_NEWS, []) if include_news else [],
     )

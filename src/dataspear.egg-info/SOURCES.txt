@@ -3,6 +3,7 @@ pyproject.toml
 src/dataspear/__init__.py
 src/dataspear/config.py
 src/dataspear/core.py
+src/dataspear/groww.py
 src/dataspear/news.py
 src/dataspear.egg-info/PKG-INFO
 src/dataspear.egg-info/SOURCES.txt
@@ -29,6 +30,7 @@ src/dataspear/utils/validation.py
 src/dataspear/utils/yahoo.py
 tests/test_config.py
 tests/test_context.py
+tests/test_groww.py
 tests/test_integration.py
 tests/test_levels.py
 tests/test_market_extra.py

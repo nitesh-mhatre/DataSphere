@@ -266,6 +266,48 @@ class GrowwQuote:
 
 
 @dataclass
+class GrowwLiveQuote:
+    """Parsed live price snapshot for one Groww contract."""
+
+    contract_id: str = ""
+    symbol: str = ""
+    segment: str = ""
+    ltp: float = 0.0
+    close: float = 0.0
+    day_change: float = 0.0
+    day_change_pct: float = 0.0
+    oi: int = 0
+    prev_oi: int = 0
+    iv: float = 0.0
+    delta: float = 0.0
+    gamma: float = 0.0
+    theta: float = 0.0
+    vega: float = 0.0
+    rho: float = 0.0
+    pop: float = 0.0
+
+    def to_dict(self) -> dict:
+        return {
+            "contract_id": self.contract_id,
+            "symbol": self.symbol,
+            "segment": self.segment,
+            "ltp": self.ltp,
+            "close": self.close,
+            "day_change": self.day_change,
+            "day_change_pct": self.day_change_pct,
+            "oi": self.oi,
+            "prev_oi": self.prev_oi,
+            "iv": self.iv,
+            "delta": self.delta,
+            "gamma": self.gamma,
+            "theta": self.theta,
+            "vega": self.vega,
+            "rho": self.rho,
+            "pop": self.pop,
+        }
+
+
+@dataclass
 class GrowwStrike:
     """A single strike row with its call and put legs."""
 
@@ -537,12 +579,45 @@ async def fetch_groww_option_chain(
     return parse_option_chain(next_data, underlying=underlying.upper())
 
 
+def _parse_live_payload(symbol: str, payload: dict) -> GrowwLiveQuote:
+    """Parse a raw live-price JSON payload into a :class:`GrowwLiveQuote`."""
+    live = (payload or {}).get("data") or (payload or {}).get("liveData") or {}
+    greeks = (payload or {}).get("greeks") or {}
+    return GrowwLiveQuote(
+        contract_id=payload.get("growwContractId") or symbol,
+        symbol=payload.get("symbol") or symbol,
+        segment=payload.get("segment") or "FNO",
+        ltp=_to_float(live.get("ltp") if isinstance(live, dict) else None),
+        close=_to_float(live.get("close") if isinstance(live, dict) else None),
+        day_change=_to_float(live.get("dayChange") if isinstance(live, dict) else None),
+        day_change_pct=_to_float(live.get("dayChangePerc") if isinstance(live, dict) else None),
+        oi=_to_int(live.get("oi") if isinstance(live, dict) else None),
+        prev_oi=_to_int(live.get("prevOI") if isinstance(live, dict) else None),
+        iv=_to_float(greeks.get("iv") if isinstance(greeks, dict) else None),
+        delta=_to_float(greeks.get("delta") if isinstance(greeks, dict) else None),
+        gamma=_to_float(greeks.get("gamma") if isinstance(greeks, dict) else None),
+        theta=_to_float(greeks.get("theta") if isinstance(greeks, dict) else None),
+        vega=_to_float(greeks.get("vega") if isinstance(greeks, dict) else None),
+        rho=_to_float(greeks.get("rho") if isinstance(greeks, dict) else None),
+        pop=_to_float(greeks.get("pop") if isinstance(greeks, dict) else None),
+    )
+
+
 async def fetch_groww_live_price(
     symbol: str, segment: str = "FNO", exchange: str = "NSE"
-) -> dict:
-    """Fetch the live price snapshot for one Groww contract (FNO by default)."""
+) -> GrowwLiveQuote:
+    """Fetch and parse the live price snapshot for one Groww contract.
+
+    Returns a :class:`GrowwLiveQuote` (never a raw dict) so consumers get a
+    consistent typed model. On HTTP failure returns a zeroed quote.
+    """
     url = LIVE_PRICE_URL.format(exchange=exchange, segment=segment, symbol=symbol)
-    return await _get_json(url)
+    try:
+        payload = await _get_json(url)
+        return _parse_live_payload(symbol, payload)
+    except httpx.HTTPError as exc:
+        log.warning("Groww live price fetch failed for %s: %s", symbol, exc)
+        return GrowwLiveQuote(contract_id=symbol, symbol=symbol, segment=segment)
 
 
 async def find_groww_contract(

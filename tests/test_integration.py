@@ -33,9 +33,9 @@ class TestComponentIntegration:
         from dataspear.config import config
         from dataspear.utils.url import URL
 
-        # Verify URL class references config
-        assert hasattr(URL, 'base_url')
-        assert hasattr(URL, 'api_index_route')
+        # Verify URL class references config (now via methods)
+        assert hasattr(URL, '_base_url')
+        assert hasattr(URL, '_api_index_route')
 
     def test_full_workflow(self):
         """Test a basic workflow: config -> URL -> handler."""
@@ -59,18 +59,28 @@ class TestErrorHandling:
     """Test error handling across components."""
 
     def test_config_missing_file(self):
-        """Test config handles missing file gracefully."""
+        """Test config handles missing file gracefully (no error, uses defaults)."""
         from dataspear.config import Config
 
         config = Config()
-        with pytest.raises(FileNotFoundError):
-            config.load_env("/path/that/does/not/exist/.env")
+        # Missing file should not raise — falls back to system env + defaults.
+        config.load_env("/path/that/does/not/exist/.env")
+        assert config.base_url == "https://groww.in"
+        assert config.api_index_route is not None
+        assert config.api_key is None
 
     def test_url_with_empty_extra(self):
         """Test URL generation with empty extra parameter."""
         from dataspear.utils.url import URL
+        import sys
 
-        with patch.object(URL, 'base_url', 'https://test.com'):
-            with patch.object(URL, 'api_index_route', '/api/'):
-                url = URL.get_url("")
-                assert url == "https://test.com/api/"
+        cfg_mod = sys.modules["dataspear.config"]
+        orig = cfg_mod.config
+        cfg_mod.config = type(orig)()
+        cfg_mod.config.base_url = 'https://test.com'
+        cfg_mod.config.api_index_route = '/api/'
+        try:
+            url = URL.get_url("")
+            assert url == "https://test.com/api/"
+        finally:
+            cfg_mod.config = orig

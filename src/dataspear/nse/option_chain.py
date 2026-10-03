@@ -114,12 +114,20 @@ async def get_expiry_dates() -> List[str]:
     data = await fetch_option_chain()
     expiries: List[str] = []
     seen: set = set()
-    for row in (data.get("records", {}) or {}).get("data", []) or []:
+    rows = (data.get("records", {}) or {}).get("data", []) or []
+    for row in rows:
+        # Prefer row-level expiryDate, then CE/PE-level.
+        row_expiry = row.get("expiryDate") or ""
+        if row_expiry and row_expiry not in seen:
+            seen.add(row_expiry)
+            expiries.append(row_expiry)
         for side in ("CE", "PE"):
-            exp = (row.get(side) or {}).get("expiryDate", "")
-            if exp and exp not in seen:
-                seen.add(exp)
-                expiries.append(exp)
+            side_data = row.get(side) or {}
+            if isinstance(side_data, dict):
+                exp = side_data.get("expiryDate", "")
+                if exp and exp not in seen:
+                    seen.add(exp)
+                    expiries.append(exp)
     return expiries
 
 

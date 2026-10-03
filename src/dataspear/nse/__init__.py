@@ -17,6 +17,7 @@ from dataspear.nse.analysis import (
     top_oi_strikes,
 )
 from dataspear.nse.context import MarketContext, build_market_context
+from dataspear.core import ai_tool_tip
 from dataspear.nse.levels import (
     LevelAnalysis,
     detect_levels,
@@ -145,4 +146,5 @@ __all__ = [
     # full context
     "MarketContext",
     "build_market_context",
+    "ai_tool_tip",
 ]

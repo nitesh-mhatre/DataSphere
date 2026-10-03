@@ -17,10 +17,13 @@ class TestConfig:
         assert config.api_index_route is None
 
     def test_load_env_file_not_found(self):
-        """Test that FileNotFoundError is raised for missing env file."""
+        """Test that a missing env file falls back to system env + defaults (no error)."""
         config = Config()
-        with pytest.raises(FileNotFoundError, match="Environment file not found"):
-            config.load_env("/nonexistent/path/.env")
+        # Should not raise — missing file is handled gracefully.
+        config.load_env("/nonexistent/path/.env")
+        assert config.base_url == "https://groww.in"
+        assert config.api_index_route is not None
+        assert config.api_key is None
 
     def test_load_env_success(self, mock_env_file):
         """Test successful loading of environment variables."""

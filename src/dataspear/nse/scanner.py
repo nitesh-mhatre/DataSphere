@@ -17,6 +17,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
+import httpx
+
 from dataspear.nse.analysis import (
     max_pain,
     oi_buildup_unwinding,
@@ -205,8 +207,11 @@ async def _strike_brief(
 
     try:
         chart = await get_option_chart(expiry, strike, option_type)
-    except Exception as exc:  # noqa: BLE001 - chart is best-effort
-        log.warning("chart fetch failed for %s%s: %s", strike, option_type, exc)
+    except httpx.HTTPError as exc:
+        log.warning("chart fetch HTTP error for %s%s: %s", strike, option_type, exc)
+        chart = None
+    except RuntimeError as exc:
+        log.warning("chart fetch runtime error for %s%s: %s", strike, option_type, exc)
         chart = None
 
     if chart is None or not chart.points:

@@ -148,14 +148,14 @@ def detect_regime(
     # Signal 2 - OI wall tightness
     range_high = ce_wall if ce_wall else spot * 1.01
     range_low = pe_wall if pe_wall else spot * 0.99
-    range_width = range_high - range_low
-    if range_width <= _TIGHT_RANGE_PTS:
+    wall_width = range_high - range_low
+    if wall_width <= _TIGHT_RANGE_PTS:
         signals.append(f"TIGHT_OI_RANGE_{range_low:.0f}-{range_high:.0f}")
         sideways += 1
-    elif range_width <= _MODERATE_RANGE_PTS:
+    elif wall_width <= _MODERATE_RANGE_PTS:
         signals.append(f"MODERATE_RANGE_{range_low:.0f}-{range_high:.0f}")
     else:
-        signals.append(f"WIDE_RANGE_{range_width:.0f}pts")
+        signals.append(f"WIDE_RANGE_{wall_width:.0f}pts")
         directional += 1
 
     # Signal 3 - VIX level
@@ -210,7 +210,7 @@ def detect_regime(
         direction = "NEUTRAL"
 
     strategy, detail, no_trade = _pick_strategy(
-        regime, direction, spot, range_low, range_high, range_width, vix
+        regime, direction, spot, range_low, range_high, wall_width, vix
     )
 
     return MarketRegime(
@@ -219,7 +219,7 @@ def detect_regime(
         direction=direction,
         range_low=range_low,
         range_high=range_high,
-        range_width_pts=range_width,
+        range_width_pts=wall_width,
         vix=vix,
         pcr=pcr,
         tech_trend=tech_trend,
@@ -236,7 +236,7 @@ def _pick_strategy(
     spot: float,
     range_low: float,
     range_high: float,
-    range_width: float,
+    wall_width: float,
     vix: float,
 ) -> tuple:
     """Returns ``(strategy, detail, no_trade_reason)``."""
@@ -262,18 +262,18 @@ def _pick_strategy(
         )
 
     if regime == "SIDEWAYS":
-        if range_width <= 200:
+        if wall_width <= 200:
             return (
                 "SHORT_STRANGLE",
-                f"Range {range_low:.0f}-{range_high:.0f} ({range_width:.0f}pts). "
+                f"Range {range_low:.0f}-{range_high:.0f} ({wall_width:.0f}pts). "
                 f"Sell OTM CE near {range_high:.0f} + OTM PE near {range_low:.0f}. "
                 "SL: break of range by 30pts. Target: 50% premium.",
                 "",
             )
-        if range_width <= 350:
+        if wall_width <= 350:
             return (
                 "IRON_CONDOR",
-                f"Range {range_low:.0f}-{range_high:.0f} ({range_width:.0f}pts). "
+                f"Range {range_low:.0f}-{range_high:.0f} ({wall_width:.0f}pts). "
                 f"Sell {range_high:.0f}CE + buy {range_high + 100:.0f}CE; "
                 f"sell {range_low:.0f}PE + buy {range_low - 100:.0f}PE.",
                 "",

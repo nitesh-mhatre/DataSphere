@@ -1,5 +1,5 @@
 from dataspear.config import Config, config
-from dataspear.core import DataConnection, IndexDataConnection
+from dataspear.core import DataConnection, IndexDataConnection, ai_tool_tip
 from dataspear.groww import (
     GrowwCandle,
     GrowwChart,
@@ -67,6 +67,7 @@ __all__ = [
     "URL",
     "ConnectionType",
     "IndexRequestParameters",
+    "ai_tool_tip",
     # option chain
     "OptionChain",
     "OptionQuote",
