@@ -16,9 +16,10 @@ async def main():
     print(f"Query: {EXTRA_QUERY}")
     print("=" * 60)
     
-    response = await handler.fetch(EXTRA_QUERY)
-    
-    if response:
+    error, response = await handler.fetch(EXTRA_QUERY)
+    await handler.aclose()
+
+    if response is not None:
         print("\n" + "=" * 60)
         print("SUCCESS!")
         print("=" * 60)
@@ -31,6 +32,7 @@ async def main():
     else:
         print("\n" + "=" * 60)
         print("FAILED to fetch data")
+        print(error)
         print("=" * 60)
         return 1
 

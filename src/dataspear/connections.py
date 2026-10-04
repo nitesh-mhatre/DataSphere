@@ -14,10 +14,12 @@ from typing import Any, Optional
 
 import httpx
 
+from dataspear.base import BaseConnection
 from dataspear.utils.request_handler import RequestHandler
 from dataspear.utils.validation import ConnectionType, IndexRequestParameters
 
 __all__ = [
+    "BaseConnection",
     "DataConnection",
     "IndexDataConnection",
     "GrowwDataConnection",
@@ -27,12 +29,14 @@ __all__ = [
 ]
 
 
-class DataConnection:
+class DataConnection(BaseConnection):
     """Backward-compatible base for the legacy Groww index-chart endpoint.
 
     ``fetch`` returns ``(error, response)`` to preserve the original public
     contract. New provider connections return their provider's parsed model.
     """
+
+    provider = "index"
 
     def __init__(
         self,
@@ -96,8 +100,10 @@ class IndexDataConnection(DataConnection):
         super().__init__(params=params, request_handler=request_handler)
 
 
-class NseDataConnection:
+class NseDataConnection(BaseConnection):
     """Connection for arbitrary NSE endpoints using the shared cookie session."""
+
+    provider = "nse"
 
     def __init__(self, url: Optional[str] = None) -> None:
         self.url = url
@@ -121,8 +127,10 @@ class NseDataConnection:
         return await nse_get_json(target, **kwargs)
 
 
-class GrowwDataConnection:
+class GrowwDataConnection(BaseConnection):
     """Connection façade for Groww charts, options, and live quotes."""
+
+    provider = "groww"
 
     def __init__(self, underlying: str = "NIFTY") -> None:
         self.underlying = underlying.upper()
@@ -166,8 +174,10 @@ class GrowwDataConnection:
         return await fetch_groww_live_price(symbol, segment=segment, exchange=exchange)
 
 
-class NewsConnection:
+class NewsConnection(BaseConnection):
     """Configured Google News RSS connection for a query or named category."""
+
+    provider = "news"
 
     def __init__(self, query: Optional[str] = None, category: str = "market") -> None:
         self.query = query

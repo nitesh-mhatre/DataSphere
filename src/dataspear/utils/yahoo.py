@@ -183,6 +183,16 @@ def quote_from_meta(meta: Dict[str, Any]) -> dict:
     }
 
 
+def quote_from_payload(payload: Optional[dict]) -> dict:
+    """Last-price snapshot from a raw Yahoo chart payload (zeros when empty)."""
+    meta, candles = parse_chart(payload)
+    if not meta and not candles:
+        return {"price": 0.0, "prev_close": 0.0, "change": 0.0, "change_pct": 0.0}
+    if not meta.get("regularMarketPrice") and candles:
+        meta = {**meta, "regularMarketPrice": candles[-1].close}
+    return quote_from_meta(meta)
+
+
 async def get_quote(
     ticker: str,
     range_: str = "1d",
@@ -193,12 +203,7 @@ async def get_quote(
     payload = await fetch_chart(
         ticker, range_=range_, interval=interval, timeout=timeout
     )
-    meta, candles = parse_chart(payload)
-    if not meta and not candles:
-        return {"price": 0.0, "prev_close": 0.0, "change": 0.0, "change_pct": 0.0}
-    if not meta.get("regularMarketPrice") and candles:
-        meta = {**meta, "regularMarketPrice": candles[-1].close}
-    return quote_from_meta(meta)
+    return quote_from_payload(payload)
 
 
 def _to_float(value: Any) -> float:

@@ -7,7 +7,25 @@ from dataspear.connections import (
     NewsConnection,
     NseDataConnection,
 )
-from dataspear.core import ai_tool_tip
+from dataspear.base import BaseConnection, CompositeSpec, RequestSpec, Transport
+from dataspear.core import Core, Result, ai_tool_tip
+from dataspear.transports import HttpTransport, NseTransport
+from dataspear.errors import DataSpearError, InvalidParametersError, UnknownProviderError
+from dataspear.specs import (
+    GrowwChartSpec,
+    GrowwLivePriceSpec,
+    GrowwOptionChainSpec,
+    GrowwOptionChartSpec,
+    IndexSpec,
+    LevelsSpec,
+    NewsSpec,
+    NseExpirySpec,
+    NseOptionChainSpec,
+    NseOptionChartSpec,
+    YahooCandlesSpec,
+    YahooQuoteSpec,
+    as_spec,
+)
 from dataspear.groww import (
     GrowwCandle,
     GrowwChart,
@@ -70,6 +88,30 @@ __all__ = [
     "Config",
     "Settings",
     "config",
+    "Core",
+    "Result",
+    "Transport",
+    "BaseConnection",
+    "HttpTransport",
+    "NseTransport",
+    "DataSpearError",
+    "InvalidParametersError",
+    "UnknownProviderError",
+    "RequestSpec",
+    "CompositeSpec",
+    "IndexSpec",
+    "GrowwChartSpec",
+    "GrowwOptionChainSpec",
+    "GrowwLivePriceSpec",
+    "GrowwOptionChartSpec",
+    "NseOptionChainSpec",
+    "NseExpirySpec",
+    "NseOptionChartSpec",
+    "YahooCandlesSpec",
+    "YahooQuoteSpec",
+    "NewsSpec",
+    "LevelsSpec",
+    "as_spec",
     "DataConnection",
     "IndexDataConnection",
     "GrowwDataConnection",

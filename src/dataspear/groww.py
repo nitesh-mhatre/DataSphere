@@ -611,6 +611,18 @@ async def find_groww_contract(
     itself reports (weekly vs monthly, exact strike formatting).
     """
     chain = await fetch_groww_option_chain(underlying, expiry=expiry)
+    return contract_from_chain(chain, strike, option_type, underlying=underlying, expiry=expiry)
+
+
+def contract_from_chain(
+    chain: GrowwOptionChain,
+    strike: float,
+    option_type: str = "CE",
+    *,
+    underlying: str = "",
+    expiry: str = "",
+) -> str:
+    """Pick the Groww ``contract_id`` for ``strike``/``option_type`` from a parsed chain."""
     target = int(round(float(strike)))
     for row in chain.strikes:
         if int(round(row.strike)) != target:
@@ -620,7 +632,7 @@ async def find_groww_contract(
             return quote.contract_id
         break
     raise ValueError(
-        f"No Groww contract for {underlying} {expiry} {strike} {option_type}"
+        f"No Groww contract for {underlying or chain.underlying} {expiry} {strike} {option_type}"
     )
 
 

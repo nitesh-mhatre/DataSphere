@@ -97,22 +97,8 @@ async def fetch_option_chain(expiry: Optional[str] = None) -> dict:
     return resp.json()
 
 
-async def get_expiry_dates() -> List[str]:
-    """List available NIFTY expiry dates.
-
-    Tries the dedicated contract-info endpoint first, then falls back to
-    extracting the unique dates from the option chain itself.
-    """
-    try:
-        resp = await nse_get(CONTRACT_INFO_URL)
-        if resp.status_code == 200:
-            dates = resp.json().get("expiryDates", [])
-            if dates:
-                return dates
-    except Exception as exc:  # noqa: BLE001 - fall through to chain parsing
-        log.debug("contract-info expiry fetch failed: %s", exc)
-
-    data = await fetch_option_chain()
+def expiries_from_chain(data: dict) -> List[str]:
+    """Unique expiry dates found in a raw NSE option-chain payload, in order."""
     expiries: List[str] = []
     seen: set = set()
     rows = (data.get("records", {}) or {}).get("data", []) or []
@@ -130,6 +116,24 @@ async def get_expiry_dates() -> List[str]:
                     seen.add(exp)
                     expiries.append(exp)
     return expiries
+
+
+async def get_expiry_dates() -> List[str]:
+    """List available NIFTY expiry dates.
+
+    Tries the dedicated contract-info endpoint first, then falls back to
+    extracting the unique dates from the option chain itself.
+    """
+    try:
+        resp = await nse_get(CONTRACT_INFO_URL)
+        if resp.status_code == 200:
+            dates = resp.json().get("expiryDates", [])
+            if dates:
+                return dates
+    except Exception as exc:  # noqa: BLE001 - fall through to chain parsing
+        log.debug("contract-info expiry fetch failed: %s", exc)
+
+    return expiries_from_chain(await fetch_option_chain())
 
 
 async def get_nifty_option_chain(

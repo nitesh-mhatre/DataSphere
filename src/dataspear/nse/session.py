@@ -44,6 +44,10 @@ _DEFAULT_MAX_RETRIES = NSE_MAX_RETRIES
 _DEFAULT_RETRY_DELAY = NSE_RETRY_DELAY
 _DEFAULT_TIMEOUT = DEFAULT_HTTP_TIMEOUT
 
+# time.monotonic() has an arbitrary origin (it can be tiny right after boot), so
+# "expired" must be -inf rather than 0.0 to always exceed the cookie TTL.
+_STALE = float("-inf")
+
 
 class NseSession:
     """Thread/task-safe NSE session with automatic cookie renewal."""
@@ -63,7 +67,7 @@ class NseSession:
         self.headers = {**_HEADERS, **(headers or {})}
 
         self._client: Optional[httpx.AsyncClient] = None
-        self._last_warmup: float = 0.0
+        self._last_warmup: float = _STALE
         self._lock: Optional[asyncio.Lock] = None
 
     # ── Internal helpers ──────────────────────────────────────────────────────
@@ -121,7 +125,7 @@ class NseSession:
                         attempt + 1,
                     )
                     async with self._get_lock():
-                        self._last_warmup = 0.0
+                        self._last_warmup = _STALE
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay * (attempt + 1))
                     continue
@@ -156,7 +160,7 @@ class NseSession:
 
     def force_refresh(self) -> None:
         """Force a cookie refresh on the next request."""
-        self._last_warmup = 0.0
+        self._last_warmup = _STALE
 
 
 # ── Module-level singleton ────────────────────────────────────────────────────

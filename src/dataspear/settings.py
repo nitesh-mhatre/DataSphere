@@ -15,7 +15,9 @@ from dotenv import dotenv_values
 
 GROWW_BASE_URL = "https://groww.in"
 NSE_BASE_URL = "https://www.nseindia.com"
-YAHOO_CHART_ENDPOINT = "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+YAHOO_BASE_URL = "https://query1.finance.yahoo.com"
+GOOGLE_NEWS_BASE_URL = "https://news.google.com"
+YAHOO_CHART_ENDPOINT = f"{YAHOO_BASE_URL}/v8/finance/chart/{{ticker}}"
 GOOGLE_NEWS_RSS_ENDPOINT = (
     "https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
 )
@@ -100,6 +102,8 @@ __all__ = [
     "DEFAULT_API_INDEX_ROUTE",
     "GROWW_BASE_URL",
     "NSE_BASE_URL",
+    "YAHOO_BASE_URL",
+    "GOOGLE_NEWS_BASE_URL",
     "YAHOO_CHART_ENDPOINT",
     "GOOGLE_NEWS_RSS_ENDPOINT",
     "USER_AGENT",
